@@ -31,7 +31,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Tests
             var kestrelTrace = new TestKestrelTrace();
             var handlerMre = new ManualResetEventSlim();
             var handlerStartedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            var now = systemClock.UtcNow;
+            var now = systemClock.CurrentTicks;
             var heartbeatDuration = TimeSpan.FromSeconds(2);
 
             heartbeatHandler.Setup(h => h.OnHeartbeat(now)).Callback(() =>
@@ -60,7 +60,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Tests
             heartbeatHandler.Verify(h => h.OnHeartbeat(now), Times.Once());
 
             var warningMessage = kestrelTrace.Logger.Messages.Single(message => message.LogLevel == LogLevel.Warning).Message;
-            Assert.Equal($"As of \"{now.ToString(CultureInfo.InvariantCulture)}\", the heartbeat has been running for "
+            Assert.EndsWith($"As of \"{now.ToString(CultureInfo.InvariantCulture)}\", the heartbeat has been running for "
                 + $"\"{heartbeatDuration.ToString("c", CultureInfo.InvariantCulture)}\" which is longer than "
                 + $"\"{Heartbeat.Interval.ToString("c", CultureInfo.InvariantCulture)}\". "
                 + "This could be caused by thread pool starvation.", warningMessage);
@@ -75,7 +75,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Tests
             var kestrelTrace = new Mock<IKestrelTrace>();
             var handlerMre = new ManualResetEventSlim();
             var handlerStartedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            var now = systemClock.UtcNow;
+            var now = systemClock.CurrentTicks;
 
             heartbeatHandler.Setup(h => h.OnHeartbeat(now)).Callback(() =>
             {
@@ -102,7 +102,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Tests
             await blockedHeartbeatTask.DefaultTimeout();
 
             heartbeatHandler.Verify(h => h.OnHeartbeat(now), Times.Once());
-            kestrelTrace.Verify(t => t.HeartbeatSlow(TimeSpan.FromSeconds(2), Heartbeat.Interval, now), Times.Never());
+            kestrelTrace.Verify(t => t.HeartbeatSlow(TimeSpan.FromSeconds(2), Heartbeat.Interval, It.IsAny<DateTimeOffset>()), Times.Never());
         }
 
         [Fact]
@@ -113,7 +113,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Tests
             var kestrelTrace = new TestKestrelTrace();
             var ex = new Exception();
 
-            heartbeatHandler.Setup(h => h.OnHeartbeat(systemClock.UtcNow)).Throws(ex);
+            heartbeatHandler.Setup(h => h.OnHeartbeat(systemClock.CurrentTicks)).Throws(ex);
 
             using (var heartbeat = new Heartbeat(new[] { heartbeatHandler.Object }, systemClock, DebuggerWrapper.Singleton, kestrelTrace))
             {

@@ -1,17 +1,12 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-using System;
-using System.Threading;
-
 namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure
 {
-    internal class HeartbeatManager : IHeartbeatHandler, ISystemClock
+    internal class HeartbeatManager : IHeartbeatHandler
     {
         private readonly ConnectionManager _connectionManager;
         private readonly Action<KestrelConnection> _walkCallback;
-        private DateTimeOffset _now;
-        private long _nowTicks;
 
         public HeartbeatManager(ConnectionManager connectionManager)
         {
@@ -19,17 +14,8 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure
             _walkCallback = WalkCallback;
         }
 
-        public DateTimeOffset UtcNow => new DateTimeOffset(UtcNowTicks, TimeSpan.Zero);
-
-        public long UtcNowTicks => Volatile.Read(ref _nowTicks);
-
-        public DateTimeOffset UtcNowUnsynchronized => _now;
-
-        public void OnHeartbeat(DateTimeOffset now)
+        public void OnHeartbeat(long now)
         {
-            _now = now;
-            Volatile.Write(ref _nowTicks, now.Ticks);
-
             _connectionManager.Walk(_walkCallback);
         }
 

@@ -63,16 +63,16 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Tests
                     for (var i = 0; i < 2; i++)
                     {
                         testContext.MockSystemClock.UtcNow += TimeSpan.FromSeconds(1);
-                        heartbeatManager.OnHeartbeat(testContext.SystemClock.UtcNow);
+                        heartbeatManager.OnHeartbeat(testContext.SystemClock.CurrentTicks);
                     }
 
                     testContext.MockSystemClock.UtcNow += Heartbeat.Interval - TimeSpan.FromSeconds(.5);
-                    heartbeatManager.OnHeartbeat(testContext.SystemClock.UtcNow);
+                    heartbeatManager.OnHeartbeat(testContext.SystemClock.CurrentTicks);
 
                     Assert.Null(transportConnection.AbortReason);
 
                     testContext.MockSystemClock.UtcNow += TimeSpan.FromSeconds(1);
-                    heartbeatManager.OnHeartbeat(testContext.SystemClock.UtcNow);
+                    heartbeatManager.OnHeartbeat(testContext.SystemClock.CurrentTicks);
 
                     Assert.NotNull(transportConnection.AbortReason);
                     Assert.Equal(CoreStrings.ConnectionTimedBecauseResponseMininumDataRateNotSatisfied, transportConnection.AbortReason.Message);

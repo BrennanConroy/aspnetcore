@@ -1593,7 +1593,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.InMemory.FunctionalTests
                     await appEvent.Task.DefaultTimeout();
 
                     serviceContext.MockSystemClock.UtcNow += TimeSpan.FromSeconds(5);
-                    heartbeatManager.OnHeartbeat(serviceContext.SystemClock.UtcNow);
+                    heartbeatManager.OnHeartbeat(serviceContext.SystemClock.CurrentTicks);
 
                     delayEvent.SetResult();
 

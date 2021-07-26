@@ -52,7 +52,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal
             try
             {
                 // Ensure TimeoutControl._lastTimestamp is initialized before anything that could set timeouts runs.
-                _timeoutControl.Initialize(_systemClock.UtcNowTicks);
+                _timeoutControl.Initialize(_systemClock.CurrentTicks);
 
                 IRequestProcessor? requestProcessor = null;
 
@@ -247,7 +247,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal
             }
 
             // It's safe to use UtcNowUnsynchronized since Tick is called by the Heartbeat.
-            var now = _systemClock.UtcNowUnsynchronized;
+            var now = _systemClock.CurrentTicksUnsynchronized;
             _timeoutControl.Tick(now);
             _requestProcessor!.Tick(now);
         }

@@ -761,7 +761,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.FunctionalTests
 
             testContext.InitializeHeartbeat();
             var dateHeaderValueManager = new DateHeaderValueManager();
-            dateHeaderValueManager.OnHeartbeat(DateTimeOffset.MinValue);
+            dateHeaderValueManager.OnHeartbeat(DateTimeOffset.MinValue.ToUnixTimeMilliseconds());
             testContext.DateHeaderValueManager = dateHeaderValueManager;
 
             var listenOptions = new ListenOptions(new IPEndPoint(IPAddress.Loopback, 0));
@@ -841,7 +841,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.FunctionalTests
 
             testContext.InitializeHeartbeat();
             var dateHeaderValueManager = new DateHeaderValueManager();
-            dateHeaderValueManager.OnHeartbeat(DateTimeOffset.MinValue);
+            dateHeaderValueManager.OnHeartbeat(DateTimeOffset.MinValue.ToUnixTimeMilliseconds());
             testContext.DateHeaderValueManager = dateHeaderValueManager;
 
             var listenOptions = new ListenOptions(new IPEndPoint(IPAddress.Loopback, 0));
@@ -926,7 +926,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.FunctionalTests
 
             testContext.InitializeHeartbeat();
             var dateHeaderValueManager = new DateHeaderValueManager();
-            dateHeaderValueManager.OnHeartbeat(DateTimeOffset.MinValue);
+            dateHeaderValueManager.OnHeartbeat(DateTimeOffset.MinValue.ToUnixTimeMilliseconds());
             testContext.DateHeaderValueManager = dateHeaderValueManager;
 
             var listenOptions = new ListenOptions(new IPEndPoint(IPAddress.Loopback, 0));

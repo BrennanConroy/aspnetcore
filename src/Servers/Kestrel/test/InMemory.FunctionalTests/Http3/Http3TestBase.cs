@@ -271,17 +271,17 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Tests
             while (clock.UtcNow + Heartbeat.Interval < endTime)
             {
                 clock.UtcNow += Heartbeat.Interval;
-                _timeoutControl.Tick(clock.UtcNow);
+                _timeoutControl.Tick(clock.CurrentTicks);
             }
 
             clock.UtcNow = endTime;
-            _timeoutControl.Tick(clock.UtcNow);
+            _timeoutControl.Tick(clock.CurrentTicks);
         }
 
         protected void TriggerTick(DateTimeOffset now)
         {
             _serviceContext.MockSystemClock.UtcNow = now;
-            Connection?.Tick(now);
+            Connection?.Tick(_serviceContext.MockSystemClock.CurrentTicks);
         }
 
         protected async Task InitializeConnectionAsync(RequestDelegate application)

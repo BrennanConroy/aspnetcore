@@ -1,13 +1,11 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-using System;
-using System.Threading;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure
 {
-    internal class Heartbeat : IDisposable
+    internal class Heartbeat : IDisposable, ISystemClock
     {
         public static readonly TimeSpan Interval = TimeSpan.FromSeconds(1);
 
@@ -18,6 +16,12 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure
         private readonly TimeSpan _interval;
         private readonly Thread _timerThread;
         private volatile bool _stopped;
+        private long _now;
+        private long _nowTicks;
+
+        public long CurrentTicks => Volatile.Read(ref _nowTicks);
+
+        public long CurrentTicksUnsynchronized => _now;
 
         public Heartbeat(IHeartbeatHandler[] callbacks, ISystemClock systemClock, IDebugger debugger, IKestrelTrace trace)
         {
@@ -41,24 +45,25 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure
 
         internal void OnHeartbeat()
         {
-            var now = _systemClock.UtcNow;
+            _now = _systemClock.CurrentTicks;
+            Volatile.Write(ref _nowTicks, _now);
 
             try
             {
                 foreach (var callback in _callbacks)
                 {
-                    callback.OnHeartbeat(now);
+                    callback.OnHeartbeat(_now);
                 }
 
                 if (!_debugger.IsAttached)
                 {
-                    var after = _systemClock.UtcNow;
+                    var after = _systemClock.CurrentTicks;
 
-                    var duration = TimeSpan.FromTicks(after.Ticks - now.Ticks);
+                    var duration = TimeSpan.FromMilliseconds(after - _now);
 
                     if (duration > _interval)
                     {
-                        _trace.HeartbeatSlow(duration, _interval, now);
+                        _trace.HeartbeatSlow(duration, _interval, DateTimeOffset.UtcNow);
                     }
                 }
             }

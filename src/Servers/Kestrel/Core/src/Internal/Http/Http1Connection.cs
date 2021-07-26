@@ -47,8 +47,8 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
 
             _context = context;
             _parser = ServiceContext.HttpParser;
-            _keepAliveTicks = ServerOptions.Limits.KeepAliveTimeout.Ticks;
-            _requestHeadersTimeoutTicks = ServerOptions.Limits.RequestHeadersTimeout.Ticks;
+            _keepAliveTicks = (long)ServerOptions.Limits.KeepAliveTimeout.TotalMilliseconds;
+            _requestHeadersTimeoutTicks = (long)ServerOptions.Limits.RequestHeadersTimeout.TotalMilliseconds;
 
             _http1Output = new Http1OutputProducer(
                 _context.Transport.Output,
@@ -715,6 +715,6 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
             }
         }
 
-        void IRequestProcessor.Tick(DateTimeOffset now) { }
+        void IRequestProcessor.Tick(long now) { }
     }
 }

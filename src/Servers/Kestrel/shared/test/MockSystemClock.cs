@@ -31,9 +31,9 @@ namespace Microsoft.AspNetCore.Testing
             }
         }
 
-        public long UtcNowTicks => UtcNow.Ticks;
+        public long CurrentTicks => UtcNow.Ticks / TimeSpan.TicksPerMillisecond;
 
-        public DateTimeOffset UtcNowUnsynchronized => UtcNow;
+        public long CurrentTicksUnsynchronized => UtcNow.Ticks / TimeSpan.TicksPerMillisecond;
 
         public int UtcNowCalled { get; private set; }
 

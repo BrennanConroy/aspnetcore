@@ -15,7 +15,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure
         void CancelTimeout();
 
         void InitializeHttp2(InputFlowControl connectionInputFlowControl);
-        void Tick(DateTimeOffset now);
+        void Tick(long now);
 
         void StartRequestBody(MinDataRate minRate);
         void StopRequestBody();

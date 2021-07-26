@@ -43,8 +43,8 @@ namespace Microsoft.AspNetCore.Server.Kestrel.InMemory.FunctionalTests
                     await ReceiveResponse(connection, testContext);
 
                     // Min amount of time between requests that triggers a keep-alive timeout.
-                    testContext.MockSystemClock.UtcNow += _keepAliveTimeout + Heartbeat.Interval + TimeSpan.FromTicks(1);
-                    heartbeatManager.OnHeartbeat(testContext.SystemClock.UtcNow);
+                    testContext.MockSystemClock.UtcNow += _keepAliveTimeout + Heartbeat.Interval + TimeSpan.FromMilliseconds(1);
+                    heartbeatManager.OnHeartbeat(testContext.SystemClock.CurrentTicks);
 
                     await connection.WaitForConnectionClose();
                 }
@@ -74,7 +74,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.InMemory.FunctionalTests
 
                         // Max amount of time between requests that doesn't trigger a keep-alive timeout.
                         testContext.MockSystemClock.UtcNow += _keepAliveTimeout + Heartbeat.Interval;
-                        heartbeatManager.OnHeartbeat(testContext.SystemClock.UtcNow);
+                        heartbeatManager.OnHeartbeat(testContext.SystemClock.CurrentTicks);
                     }
                 }
             }
@@ -109,7 +109,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.InMemory.FunctionalTests
                             "");
 
                         testContext.MockSystemClock.UtcNow += _shortDelay;
-                        heartbeatManager.OnHeartbeat(testContext.SystemClock.UtcNow);
+                        heartbeatManager.OnHeartbeat(testContext.SystemClock.CurrentTicks);
                     }
 
                     await connection.Send(
@@ -145,7 +145,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.InMemory.FunctionalTests
                     for (var totalDelay = TimeSpan.Zero; totalDelay < _longDelay; totalDelay += _shortDelay)
                     {
                         testContext.MockSystemClock.UtcNow += _shortDelay;
-                        heartbeatManager.OnHeartbeat(testContext.SystemClock.UtcNow);
+                        heartbeatManager.OnHeartbeat(testContext.SystemClock.CurrentTicks);
                     }
 
                     cts.Cancel();
@@ -175,8 +175,8 @@ namespace Microsoft.AspNetCore.Server.Kestrel.InMemory.FunctionalTests
                     await connection.TransportConnection.WaitForReadTask;
 
                     // Min amount of time between requests that triggers a keep-alive timeout.
-                    testContext.MockSystemClock.UtcNow += _keepAliveTimeout + Heartbeat.Interval + TimeSpan.FromTicks(1);
-                    heartbeatManager.OnHeartbeat(testContext.SystemClock.UtcNow);
+                    testContext.MockSystemClock.UtcNow += _keepAliveTimeout + Heartbeat.Interval + TimeSpan.FromMilliseconds(1);
+                    heartbeatManager.OnHeartbeat(testContext.SystemClock.CurrentTicks);
 
                     await connection.WaitForConnectionClose();
                 }
@@ -212,7 +212,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.InMemory.FunctionalTests
                     for (var totalDelay = TimeSpan.Zero; totalDelay < _longDelay; totalDelay += _shortDelay)
                     {
                         testContext.MockSystemClock.UtcNow += _shortDelay;
-                        heartbeatManager.OnHeartbeat(testContext.SystemClock.UtcNow);
+                        heartbeatManager.OnHeartbeat(testContext.SystemClock.CurrentTicks);
                     }
 
                     cts.Cancel();

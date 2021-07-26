@@ -76,7 +76,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http2
 
         internal const int InitialStreamPoolSize = 5;
         internal const int MaxStreamPoolSize = 100;
-        internal const long StreamPoolExpiryTicks = TimeSpan.TicksPerSecond * 5;
+        internal static TimeSpan StreamPoolExpiry = TimeSpan.FromSeconds(5);
 
         public Http2Connection(HttpConnectionContext context)
         {
@@ -200,7 +200,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http2
                 ValidateTlsRequirements();
 
                 TimeoutControl.InitializeHttp2(_inputFlowControl);
-                TimeoutControl.SetTimeout(Limits.KeepAliveTimeout.Ticks, TimeoutReason.KeepAlive);
+                TimeoutControl.SetTimeout((long)Limits.KeepAliveTimeout.TotalMilliseconds, TimeoutReason.KeepAlive);
 
                 if (!await TryReadPrefaceAsync())
                 {
@@ -231,7 +231,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http2
                     if (result.IsCanceled)
                     {
                         // Heartbeat will cancel ReadAsync and trigger expiring unused streams from pool.
-                        StreamPool.RemoveExpired(SystemClock.UtcNowTicks);
+                        StreamPool.RemoveExpired(SystemClock.CurrentTicks);
                     }
 
                     try
@@ -619,7 +619,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http2
 
                 if (!_incomingFrame.HeadersEndHeaders)
                 {
-                    TimeoutControl.SetTimeout(Limits.RequestHeadersTimeout.Ticks, TimeoutReason.RequestHeaders);
+                    TimeoutControl.SetTimeout((long)Limits.RequestHeadersTimeout.TotalMilliseconds, TimeoutReason.RequestHeaders);
                 }
 
                 // Start a new stream
@@ -833,7 +833,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http2
             // Incoming ping resets connection keep alive timeout
             if (TimeoutControl.TimerReason == TimeoutReason.KeepAlive)
             {
-                TimeoutControl.ResetTimeout(Limits.KeepAliveTimeout.Ticks, TimeoutReason.KeepAlive);
+                TimeoutControl.ResetTimeout((long)Limits.KeepAliveTimeout.TotalMilliseconds, TimeoutReason.KeepAlive);
             }
 
             if (_incomingFrame.PingAck)
@@ -1114,7 +1114,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http2
             }
         }
 
-        void IRequestProcessor.Tick(DateTimeOffset now)
+        void IRequestProcessor.Tick(long now)
         {
             Input.CancelPendingRead();
         }
@@ -1128,7 +1128,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http2
         private void UpdateCompletedStreams()
         {
             Http2Stream? firstRequedStream = null;
-            var now = SystemClock.UtcNowTicks;
+            var now = SystemClock.CurrentTicks;
 
             while (_completedStreams.TryDequeue(out var stream))
             {
@@ -1143,7 +1143,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http2
                 if (stream.DrainExpirationTicks == default)
                 {
                     _serverActiveStreamCount--;
-                    stream.DrainExpirationTicks = now + Constants.RequestBodyDrainTimeout.Ticks;
+                    stream.DrainExpirationTicks = now + (long)Constants.RequestBodyDrainTimeout.TotalMilliseconds;
                 }
 
                 if (stream.EndStreamReceived || stream.RstStreamReceived || stream.DrainExpirationTicks < now)
@@ -1177,7 +1177,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http2
                 // Pool and reuse the stream if it finished in a graceful state and there is space in the pool.
 
                 // This property is used to remove unused streams from the pool
-                stream.DrainExpirationTicks = SystemClock.UtcNowTicks + StreamPoolExpiryTicks;
+                stream.DrainExpirationTicks = SystemClock.CurrentTicks + (long)StreamPoolExpiry.TotalMilliseconds;
 
                 StreamPool.Push(stream);
             }
@@ -1236,7 +1236,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http2
                 {
                     if (TimeoutControl.TimerReason == TimeoutReason.None)
                     {
-                        TimeoutControl.SetTimeout(Limits.KeepAliveTimeout.Ticks, TimeoutReason.KeepAlive);
+                        TimeoutControl.SetTimeout((long)Limits.KeepAliveTimeout.TotalMilliseconds, TimeoutReason.KeepAlive);
                     }
 
                     // If we're awaiting headers, either a new stream will be started, or there will be a connection

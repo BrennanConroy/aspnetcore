@@ -38,8 +38,8 @@ namespace Microsoft.AspNetCore.Server.Kestrel.InMemory.FunctionalTests
                         headers);
 
                     // Min amount of time between requests that triggers a request headers timeout.
-                    testContext.MockSystemClock.UtcNow += RequestHeadersTimeout + Heartbeat.Interval + TimeSpan.FromTicks(1);
-                    heartbeatManager.OnHeartbeat(testContext.SystemClock.UtcNow);
+                    testContext.MockSystemClock.UtcNow += RequestHeadersTimeout + Heartbeat.Interval + TimeSpan.FromMilliseconds(1);
+                    heartbeatManager.OnHeartbeat(testContext.SystemClock.CurrentTicks);
 
                     await ReceiveTimeoutResponse(connection, testContext);
                 }
@@ -67,7 +67,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.InMemory.FunctionalTests
 
                     // Min amount of time between requests that triggers a request headers timeout.
                     testContext.MockSystemClock.UtcNow += RequestHeadersTimeout + Heartbeat.Interval + TimeSpan.FromTicks(1);
-                    heartbeatManager.OnHeartbeat(testContext.SystemClock.UtcNow);
+                    heartbeatManager.OnHeartbeat(testContext.SystemClock.CurrentTicks);
 
                     await connection.Send(
                         "a");
@@ -94,8 +94,8 @@ namespace Microsoft.AspNetCore.Server.Kestrel.InMemory.FunctionalTests
                     await connection.Send(requestLine);
 
                     // Min amount of time between requests that triggers a request headers timeout.
-                    testContext.MockSystemClock.UtcNow += RequestHeadersTimeout + Heartbeat.Interval + TimeSpan.FromTicks(1);
-                    heartbeatManager.OnHeartbeat(testContext.SystemClock.UtcNow);
+                    testContext.MockSystemClock.UtcNow += RequestHeadersTimeout + Heartbeat.Interval + TimeSpan.FromMilliseconds(1);
+                    heartbeatManager.OnHeartbeat(testContext.SystemClock.CurrentTicks);
 
                     await ReceiveTimeoutResponse(connection, testContext);
                 }
@@ -122,7 +122,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.InMemory.FunctionalTests
                         await connection.Send(ch.ToString());
 
                         testContext.MockSystemClock.UtcNow += ShortDelay;
-                        heartbeatManager.OnHeartbeat(testContext.SystemClock.UtcNow);
+                        heartbeatManager.OnHeartbeat(testContext.SystemClock.CurrentTicks);
                     }
 
                     await ReceiveTimeoutResponse(connection, testContext);

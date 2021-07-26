@@ -166,7 +166,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http3
             }
         }
 
-        public void Tick(DateTimeOffset now)
+        public void Tick(long now)
         {
             if (_aborted)
             {
@@ -178,9 +178,9 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http3
             UpdateStartingStreams(now);
         }
 
-        private void UpdateStartingStreams(DateTimeOffset now)
+        private void UpdateStartingStreams(long now)
         {
-            var ticks = now.Ticks;
+            var ticks = now;
 
             lock (_streams)
             {

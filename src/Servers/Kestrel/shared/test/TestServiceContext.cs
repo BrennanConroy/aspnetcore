@@ -48,7 +48,7 @@ namespace Microsoft.AspNetCore.Testing
                 Log);
 
             MockSystemClock = null;
-            SystemClock = heartbeatManager;
+            SystemClock = Heartbeat;
         }
 
         private void Initialize(ILoggerFactory loggerFactory, IKestrelTrace kestrelTrace)
@@ -66,7 +66,7 @@ namespace Microsoft.AspNetCore.Testing
                 AddServerHeader = false
             };
 
-            DateHeaderValueManager.OnHeartbeat(SystemClock.UtcNow);
+            DateHeaderValueManager.OnHeartbeat(SystemClock.CurrentTicks);
         }
 
         public ILoggerFactory LoggerFactory { get; set; }

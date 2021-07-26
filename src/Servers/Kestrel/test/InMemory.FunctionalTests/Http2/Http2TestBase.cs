@@ -518,7 +518,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Tests
         protected void TriggerTick(DateTimeOffset now)
         {
             _serviceContext.MockSystemClock.UtcNow = now;
-            ((IRequestProcessor)_connection)?.Tick(now);
+            ((IRequestProcessor)_connection)?.Tick(_serviceContext.MockSystemClock.CurrentTicks);
         }
 
         protected Task StartStreamAsync(int streamId, IEnumerable<KeyValuePair<string, string>> headers, bool endStream, bool flushFrame = true)
@@ -1253,11 +1253,11 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Tests
             while (clock.UtcNow + Heartbeat.Interval < endTime)
             {
                 clock.UtcNow += Heartbeat.Interval;
-                _timeoutControl.Tick(clock.UtcNow);
+                _timeoutControl.Tick(clock.CurrentTicks);
             }
 
             clock.UtcNow = endTime;
-            _timeoutControl.Tick(clock.UtcNow);
+            _timeoutControl.Tick(clock.CurrentTicks);
         }
 
         private static PipeOptions GetInputPipeOptions(ServiceContext serviceContext, MemoryPool<byte> memoryPool, PipeScheduler writerScheduler) => new PipeOptions
@@ -1380,7 +1380,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Tests
                 _realTimeoutControl.BytesWrittenToBuffer(minRate, size);
             }
 
-            public virtual void Tick(DateTimeOffset now)
+            public virtual void Tick(long now)
             {
                 _realTimeoutControl.Tick(now);
             }

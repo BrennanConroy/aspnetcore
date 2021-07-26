@@ -74,7 +74,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.InMemory.FunctionalTests
                     for (var i = 0; i < 6; i++)
                     {
                         serviceContext.MockSystemClock.UtcNow += TimeSpan.FromSeconds(1);
-                        heartbeatManager.OnHeartbeat(serviceContext.SystemClock.UtcNow);
+                        heartbeatManager.OnHeartbeat(serviceContext.SystemClock.CurrentTicks);
                     }
 
                     await connection.Receive(
@@ -100,7 +100,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.InMemory.FunctionalTests
             // Ensure there's still a constant date header value.
             var clock = new MockSystemClock();
             var date = new DateHeaderValueManager();
-            date.OnHeartbeat(clock.UtcNow);
+            date.OnHeartbeat(clock.CurrentTicks);
             serviceContext.DateHeaderValueManager = date;
 
             var appRunningEvent = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -191,7 +191,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.InMemory.FunctionalTests
                     for (var i = 0; i < 6; i++)
                     {
                         serviceContext.MockSystemClock.UtcNow += TimeSpan.FromSeconds(1);
-                        heartbeatManager.OnHeartbeat(serviceContext.SystemClock.UtcNow);
+                        heartbeatManager.OnHeartbeat(serviceContext.SystemClock.CurrentTicks);
                     }
 
                     await exceptionSwallowedTcs.Task.DefaultTimeout();

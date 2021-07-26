@@ -27,7 +27,12 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
         public DateHeaderValues GetDateHeaderValues() => _dateValues!;
 
         // Called by the Timer (background) thread
-        public void OnHeartbeat(DateTimeOffset now)
+        public void OnHeartbeat(long now)
+        {
+            OnHeartbeatInternal(DateTimeOffset.UtcNow);
+        }
+
+        internal void OnHeartbeatInternal(DateTimeOffset now)
         {
             SetDateValues(now);
         }

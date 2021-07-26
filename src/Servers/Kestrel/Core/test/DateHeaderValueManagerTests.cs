@@ -26,7 +26,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Tests
             var now = DateTimeOffset.UtcNow;
 
             var dateHeaderValueManager = new DateHeaderValueManager();
-            dateHeaderValueManager.OnHeartbeat(now);
+            dateHeaderValueManager.OnHeartbeatInternal(now);
 
             Assert.Equal(now.ToString(Rfc1123DateFormat), dateHeaderValueManager.GetDateHeaderValues().String);
         }
@@ -42,7 +42,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Tests
             };
 
             var dateHeaderValueManager = new DateHeaderValueManager();
-            dateHeaderValueManager.OnHeartbeat(now);
+            dateHeaderValueManager.OnHeartbeatInternal(now);
 
             var testKestrelTrace = new TestKestrelTrace();
 
@@ -67,7 +67,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Tests
             };
 
             var dateHeaderValueManager = new DateHeaderValueManager();
-            dateHeaderValueManager.OnHeartbeat(now);
+            dateHeaderValueManager.OnHeartbeatInternal(now);
 
             var testKestrelTrace = new TestKestrelTrace();
 
@@ -100,7 +100,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Tests
             };
 
             var dateHeaderValueManager = new DateHeaderValueManager();
-            dateHeaderValueManager.OnHeartbeat(now);
+            dateHeaderValueManager.OnHeartbeatInternal(now);
 
             var testKestrelTrace = new TestKestrelTrace();
 

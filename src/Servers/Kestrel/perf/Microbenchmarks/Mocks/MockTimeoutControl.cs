@@ -60,7 +60,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Microbenchmarks
         {
         }
 
-        public void Tick(DateTimeOffset now)
+        public void Tick(long now)
         {
         }
     }

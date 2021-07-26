@@ -345,7 +345,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Microbenchmarks
             var http1Connection = new Http1Connection(connectionContext);
 
             http1Connection.Reset();
-            serviceContext.DateHeaderValueManager.OnHeartbeat(DateTimeOffset.UtcNow);
+            serviceContext.DateHeaderValueManager.OnHeartbeat(Environment.TickCount64);
 
             _responseHeadersDirect = (HttpResponseHeaders)http1Connection.ResponseHeaders;
             var context = new DefaultHttpContext(http1Connection);

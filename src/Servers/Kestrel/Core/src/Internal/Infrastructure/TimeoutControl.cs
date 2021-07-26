@@ -45,15 +45,13 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure
             _lastTimestamp = nowTicks;
         }
 
-        public void Tick(DateTimeOffset now)
+        public void Tick(long now)
         {
-            var timestamp = now.Ticks;
+            CheckForTimeout(now);
+            CheckForReadDataRateTimeout(now);
+            CheckForWriteDataRateTimeout(now);
 
-            CheckForTimeout(timestamp);
-            CheckForReadDataRateTimeout(timestamp);
-            CheckForWriteDataRateTimeout(timestamp);
-
-            Interlocked.Exchange(ref _lastTimestamp, timestamp);
+            Interlocked.Exchange(ref _lastTimestamp, now);
         }
 
         private void CheckForTimeout(long timestamp)
@@ -110,13 +108,13 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure
 
                 // Assume overly long tick intervals are the result of server resource starvation.
                 // Don't count extra time between ticks against the rate limit.
-                _readTimingElapsedTicks += Math.Min(timestamp - _lastTimestamp, Heartbeat.Interval.Ticks);
+                _readTimingElapsedTicks += Math.Min(timestamp - _lastTimestamp, (long)Heartbeat.Interval.TotalMilliseconds);
 
                 Debug.Assert(_minReadRate != null);
 
-                if (_minReadRate.BytesPerSecond > 0 && _readTimingElapsedTicks > _minReadRate.GracePeriod.Ticks)
+                if (_minReadRate.BytesPerSecond > 0 && _readTimingElapsedTicks > (long)_minReadRate.GracePeriod.TotalMilliseconds)
                 {
-                    var elapsedSeconds = (double)_readTimingElapsedTicks / TimeSpan.TicksPerSecond;
+                    var elapsedSeconds = (double)_readTimingElapsedTicks / 1000;
                     var rate = _readTimingBytesRead / elapsedSeconds;
 
                     timeout = rate < _minReadRate.BytesPerSecond && !Debugger.IsAttached;
@@ -147,7 +145,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure
             {
                 // Assume overly long tick intervals are the result of server resource starvation.
                 // Don't count extra time between ticks against the rate limit.
-                var extraTimeForTick = timestamp - _lastTimestamp - Heartbeat.Interval.Ticks;
+                var extraTimeForTick = timestamp - _lastTimestamp - (long)Heartbeat.Interval.TotalMilliseconds;
 
                 if (extraTimeForTick > 0)
                 {
@@ -188,7 +186,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure
             TimerReason = timeoutReason;
 
             // Add Heartbeat.Interval since this can be called right before the next heartbeat.
-            Interlocked.Exchange(ref _timeoutTimestamp, Interlocked.Read(ref _lastTimestamp) + ticks + Heartbeat.Interval.Ticks);
+            Interlocked.Exchange(ref _timeoutTimestamp, Interlocked.Read(ref _lastTimestamp) + ticks + (long)Heartbeat.Interval.TotalMilliseconds);
         }
 
         public void InitializeHttp2(InputFlowControl connectionInputFlowControl)
@@ -284,14 +282,14 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure
             lock (_writeTimingLock)
             {
                 // Add Heartbeat.Interval since this can be called right before the next heartbeat.
-                var currentTimeUpperBound = Interlocked.Read(ref _lastTimestamp) + Heartbeat.Interval.Ticks;
-                var ticksToCompleteWriteAtMinRate = TimeSpan.FromSeconds(count / minRate.BytesPerSecond).Ticks;
+                var currentTimeUpperBound = Interlocked.Read(ref _lastTimestamp) + (long)Heartbeat.Interval.TotalMilliseconds;
+                var ticksToCompleteWriteAtMinRate = (long)TimeSpan.FromSeconds(count / minRate.BytesPerSecond).TotalMilliseconds;
 
                 // If ticksToCompleteWriteAtMinRate is less than the configured grace period,
                 // allow that write to take up to the grace period to complete. Only add the grace period
                 // to the current time and not to any accumulated timeout.
                 var singleWriteTimeoutTimestamp = currentTimeUpperBound + Math.Max(
-                    minRate.GracePeriod.Ticks,
+                    (long)minRate.GracePeriod.TotalMilliseconds,
                     ticksToCompleteWriteAtMinRate);
 
                 // Don't penalize a connection for completing previous writes more quickly than required.
