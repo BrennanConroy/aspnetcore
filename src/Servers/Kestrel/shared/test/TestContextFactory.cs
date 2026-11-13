@@ -184,7 +184,8 @@ internal static class TestContextFactory
         IPEndPoint remoteEndPoint = null,
         IDuplexPipe transport = null,
         ITimeoutControl timeoutControl = null,
-        IHttp3StreamLifetimeHandler streamLifetimeHandler = null)
+        IHttp3StreamLifetimeHandler streamLifetimeHandler = null,
+        ConnectionContext streamContext = null)
     {
         var http3ConnectionContext = CreateHttp3ConnectionContext(
             new TestMultiplexedConnectionContext(),
@@ -211,7 +212,7 @@ internal static class TestContextFactory
             memoryPool: memoryPool ?? MemoryPool<byte>.Shared,
             localEndPoint: localEndPoint,
             remoteEndPoint: remoteEndPoint,
-            streamContext: new DefaultConnectionContext(),
+            streamContext: streamContext ?? new DefaultConnectionContext(),
             connection: http3Conection
         )
         {

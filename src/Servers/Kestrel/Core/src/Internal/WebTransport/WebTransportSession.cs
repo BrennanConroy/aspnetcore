@@ -132,6 +132,7 @@ internal sealed class WebTransportSession : IWebTransportSession
         features.Set(_outputStreamDirectionFeature);
         var connectionContext = await _connection._multiplexedContext.ConnectAsync(features, cancellationToken);
         var streamContext = _connection.CreateHttpStreamContext(connectionContext);
+        streamContext.WebTransportSession = this;
         var stream = new WebTransportStream(streamContext, WebTransportStreamType.Output);
 
         var success = _openStreams.TryAdd(stream.StreamId, stream);
@@ -182,16 +183,9 @@ internal sealed class WebTransportSession : IWebTransportSession
         }
     }
 
-    internal bool TryRemoveStream(long streamId)
+    internal bool RemoveStream(long streamId)
     {
-        var success = _openStreams.Remove(streamId, out var stream);
-
-        if (success && stream is not null)
-        {
-            stream.DisposeAsync().AsTask().GetAwaiter().GetResult();
-        }
-
-        return success;
+        return _openStreams.TryRemove(streamId, out _);
     }
 }
 #pragma warning restore CA2252 // WebTransport is a preview feature

@@ -66,6 +66,24 @@ public class WebTransportSessionTests : Http3TestBase
         exitTcs.SetResult();
     }
 
+    [Fact]
+    public async Task WebTransportSession_DisposedStreamIsRemovedFromSession()
+    {
+        Http3Api._serviceContext.ServerOptions.EnableWebTransportAndH3Datagrams = true;
+
+        var exitTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var session = await WebTransportTestUtilities.GenerateSession(Http3Api, exitTcs);
+        var stream = WebTransportTestUtilities.CreateStream(WebTransportStreamType.Bidirectional, session: session);
+        session.AddStream(stream);
+
+        var acceptedStream = await session.AcceptStreamAsync(CancellationToken.None);
+        await acceptedStream.DisposeAsync();
+
+        Assert.False(session.RemoveStream(stream.StreamId));
+
+        exitTcs.SetResult();
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

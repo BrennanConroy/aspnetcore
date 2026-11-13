@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.IO.Pipelines;
 using System.Net.Http;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Connections.Features;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
@@ -107,7 +108,7 @@ internal class WebTransportTestUtilities
         return stream;
     }
 
-    public static WebTransportStream CreateStream(WebTransportStreamType type, Memory<byte>? memory = null)
+    public static WebTransportStream CreateStream(WebTransportStreamType type, Memory<byte>? memory = null, ConnectionContext streamContext = null, WebTransportSession session = null)
     {
         var features = new FeatureCollection();
         features.Set<IStreamIdFeature>(new StreamId(streamCounter++));
@@ -119,7 +120,9 @@ internal class WebTransportTestUtilities
         var writer = new HttpResponsePipeWriter(new StreamWriterControl(memory));
         writer.StartAcceptingWrites();
         var transport = new DuplexPipe(new StreamReader(memory), writer);
-        return new WebTransportStream(TestContextFactory.CreateHttp3StreamContext("id", null, new TestServiceContext(), features, null, null, null, transport), type);
+        var http3StreamContext = TestContextFactory.CreateHttp3StreamContext("id", null, new TestServiceContext(), features, null, null, null, transport, streamContext: streamContext);
+        http3StreamContext.WebTransportSession = session;
+        return new WebTransportStream(http3StreamContext, type);
     }
 
     class StreamId : IStreamIdFeature

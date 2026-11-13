@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Connections.Features;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core.WebTransport;
@@ -48,5 +50,47 @@ public class WebTransportStreamTests : Http3TestBase
 
         Assert.Equal(5, length);
         Assert.Equal(input.ToArray(), memoryOut.ToArray());
+    }
+
+    [Fact]
+    internal async Task WebTransportStream_DisposeAsync_DisposesUnderlyingStreamContext()
+    {
+        var streamContext = new TrackingConnectionContext();
+        var stream = WebTransportTestUtilities.CreateStream(WebTransportStreamType.Bidirectional, streamContext: streamContext);
+
+        await Task.WhenAll(stream.DisposeAsync().AsTask(), stream.DisposeAsync().AsTask());
+
+        Assert.Equal(1, streamContext.DisposeAsyncCount);
+        Assert.Equal(1, streamContext.DisposeCount);
+    }
+
+    [Fact]
+    internal async Task WebTransportStream_DisposeAsync_AfterAbortDisposesUnderlyingStreamContext()
+    {
+        var streamContext = new TrackingConnectionContext();
+        var stream = WebTransportTestUtilities.CreateStream(WebTransportStreamType.Bidirectional, streamContext: streamContext);
+
+        stream.Abort(new ConnectionAbortedException("Test abort."));
+        await stream.DisposeAsync();
+
+        Assert.Equal(1, streamContext.DisposeAsyncCount);
+        Assert.Equal(1, streamContext.DisposeCount);
+    }
+
+    private sealed class TrackingConnectionContext : DefaultConnectionContext, IDisposable
+    {
+        public int DisposeAsyncCount { get; private set; }
+        public int DisposeCount { get; private set; }
+
+        public override ValueTask DisposeAsync()
+        {
+            DisposeAsyncCount++;
+            return ValueTask.CompletedTask;
+        }
+
+        public void Dispose()
+        {
+            DisposeCount++;
+        }
     }
 }

@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http3;
 using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure;
 using Microsoft.AspNetCore.Server.Kestrel.Core.WebTransport;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.WebTransport;
 
@@ -21,9 +22,14 @@ internal sealed class WebTransportStream : ConnectionContext, IStreamDirectionFe
     private readonly DuplexPipe _duplexPipe;
     private readonly IFeatureCollection _features;
     private readonly KestrelTrace _log;
+    private readonly WebTransportSession? _session;
+    private readonly ConnectionContext _streamContext;
     private readonly long _streamId;
+    private readonly object _disposeLock = new();
     private IDictionary<object, object?>? _items;
-    private bool _isClosed;
+    private Task? _disposeTask;
+    private TaskCompletionSource? _abortCompletion;
+    private volatile bool _isClosed;
 
     public override string ConnectionId { get => _streamId.ToString(NumberFormatInfo.InvariantInfo); set => throw new NotSupportedException(); }
 
@@ -48,6 +54,8 @@ internal sealed class WebTransportStream : ConnectionContext, IStreamDirectionFe
         _canRead = type != WebTransportStreamType.Output;
         _canWrite = type != WebTransportStreamType.Input;
         _log = context.ServiceContext.Log;
+        _session = context.WebTransportSession;
+        _streamContext = context.StreamContext;
 
         var streamIdFeature = context.ConnectionFeatures.GetRequiredFeature<IStreamIdFeature>();
         _streamId = streamIdFeature!.StreamId;
@@ -63,58 +71,127 @@ internal sealed class WebTransportStream : ConnectionContext, IStreamDirectionFe
         // ended before this will be called. Then it will be considered an abort
         _connectionClosedRegistration = context.StreamContext.ConnectionClosed.Register(static state =>
         {
-            var localContext = (Http3StreamContext)state!;
-            // get the stream id here again to minimize allocations that would have been created
-            // if we pass stuff via a value tuple
-            var streamId = localContext.ConnectionFeatures.GetRequiredFeature<IStreamIdFeature>().StreamId;
-
-            localContext.WebTransportSession?.TryRemoveStream(streamId);
-        }, context);
+            var stream = (WebTransportStream)state!;
+            // QuicStreamContext signals ConnectionClosed before its processing task completes.
+            ThreadPool.UnsafeQueueUserWorkItem(static stream => _ = stream.DisposeOnConnectionClosedAsync(), stream, preferLocal: false);
+        }, this);
 
         ConnectionClosed = _connectionClosedRegistration.Token;
     }
 
     public override void Abort(ConnectionAbortedException abortReason)
     {
-        if (_isClosed)
+        TaskCompletionSource abortCompletion;
+        lock (_disposeLock)
         {
-            return;
+            if (_isClosed)
+            {
+                return;
+            }
+
+            _isClosed = true;
+            abortCompletion = _abortCompletion = new(TaskCreationOptions.RunContinuationsAsynchronously);
         }
 
-        _isClosed = true;
-
-        _log.Http3StreamAbort(ConnectionId, Http3ErrorCode.InternalError, abortReason);
-
-        if (_canRead)
+        try
         {
-            _duplexPipe.Input.Complete(abortReason);
+            _log.Http3StreamAbort(ConnectionId, Http3ErrorCode.InternalError, abortReason);
+
+            if (_canRead)
+            {
+                _duplexPipe.Input.Complete(abortReason);
+            }
+
+            if (_canWrite)
+            {
+                _duplexPipe.Output.Complete(abortReason);
+            }
         }
-
-        if (_canWrite)
+        finally
         {
-            _duplexPipe.Output.Complete(abortReason);
+            abortCompletion.TrySetResult();
         }
     }
 
-    public override async ValueTask DisposeAsync()
+    public override ValueTask DisposeAsync()
     {
-        if (_isClosed)
+        TaskCompletionSource? disposeCompletion = null;
+        Task? abortCompletion = null;
+        var completePipes = false;
+        Task disposeTask;
+
+        lock (_disposeLock)
         {
-            return;
+            if (_disposeTask is null)
+            {
+                completePipes = !_isClosed;
+                _isClosed = true;
+                abortCompletion = _abortCompletion?.Task;
+                disposeCompletion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                _disposeTask = disposeCompletion.Task;
+            }
+
+            disposeTask = _disposeTask;
         }
 
-        _isClosed = true;
-
-        await _connectionClosedRegistration.DisposeAsync();
-
-        if (_canRead)
+        if (disposeCompletion is not null)
         {
-            await _duplexPipe.Input.CompleteAsync();
+            _ = DisposeAsyncCore(disposeCompletion, completePipes, abortCompletion);
         }
 
-        if (_canWrite)
+        return new ValueTask(disposeTask);
+    }
+
+    private async Task DisposeAsyncCore(TaskCompletionSource disposeCompletion, bool completePipes, Task? abortCompletion)
+    {
+        try
         {
-            await _duplexPipe.Output.CompleteAsync();
+            _session?.RemoveStream(_streamId);
+
+            await _connectionClosedRegistration.DisposeAsync();
+
+            if (abortCompletion is not null)
+            {
+                await abortCompletion;
+            }
+
+            if (completePipes)
+            {
+                if (_canRead)
+                {
+                    await _duplexPipe.Input.CompleteAsync();
+                }
+
+                if (_canWrite)
+                {
+                    await _duplexPipe.Output.CompleteAsync();
+                }
+            }
+
+            await _streamContext.DisposeAsync();
+
+            if (_streamContext is IDisposable disposableStream)
+            {
+                disposableStream.Dispose();
+            }
+
+            disposeCompletion.TrySetResult();
+        }
+        catch (Exception ex)
+        {
+            disposeCompletion.TrySetException(ex);
+        }
+    }
+
+    private async Task DisposeOnConnectionClosedAsync()
+    {
+        try
+        {
+            await DisposeAsync();
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(0, ex, $"Unexpected exception in {nameof(WebTransportStream)}.{nameof(DisposeAsync)}.");
         }
     }
 }
